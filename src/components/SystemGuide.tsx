@@ -26,7 +26,7 @@ const systems: System[] = [
     description: 'Simple passive system using wicks to draw nutrient solution to the roots.',
     pros: ['Low cost', 'Easy to set up', 'Low maintenance'],
     cons: ['Limited to small plants', 'Can be less efficient'],
-    systemImage: 'https://images.unsplash.com/photo-1558435186-d31d126391fa?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80',
+    systemImage: 'https://growwithoutsoil.com/wp-content/uploads/2021/02/Wick-System-buy.jpg',
     materialsImage: 'https://images.unsplash.com/photo-1615477081663-5e5c9b8bca21?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80'
   },
   {
@@ -37,7 +37,7 @@ const systems: System[] = [
     description: 'Plants are suspended in nutrient-rich, oxygenated water.',
     pros: ['Fast growth', 'High yields', 'Good for leafy greens'],
     cons: ['Requires constant electricity', 'Risk of pump failure'],
-    systemImage: 'https://images.unsplash.com/photo-1589469526983-0887ebe10072?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80',
+    systemImage: 'https://www.researchgate.net/profile/Zohaib-Bughio/publication/353911938/figure/fig1/AS:1056870211006465@1628988902666/Deep-water-culture-reservoir-system-used-hydroponic-model.png',
     materialsImage: 'https://images.unsplash.com/photo-1624958723474-05d32b99c0a3?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80'
   },
   {
@@ -48,7 +48,7 @@ const systems: System[] = [
     description: 'Thin film of nutrient solution flows over the roots in channels.',
     pros: ['Water efficient', 'Scalable', 'Good for commercial use'],
     cons: ['Higher initial cost', 'Requires precise slope'],
-    systemImage: 'https://images.unsplash.com/photo-1558449028-b53a39d100fc?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80',
+    systemImage: 'https://asabi.co.id/wp-content/uploads/2022/04/NFT-System-785x490.jpg',
     materialsImage: 'https://images.unsplash.com/photo-1624959462477-c69d45934523?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80'
   },
   {
@@ -59,7 +59,7 @@ const systems: System[] = [
     description: 'Periodically floods the grow tray with nutrient solution and then drains it.',
     pros: ['Versatile for various plant sizes', 'Efficient nutrient use'],
     cons: ['More complex setup', 'Risk of pump or timer failure'],
-    systemImage: 'https://images.unsplash.com/photo-1604014237800-1c9102c219da?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80',
+    systemImage: 'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh8NzXUiEyH1sB3zFIoiZ8ZZQGPKtRnilitbyAt_sYr4Gn3cjBTkEl3_wKQgvwtYURTjDTYh6DcAVQ2yu4p74vgrm6z0I8WU4iPQfm6tNw3eV4rFh9d_EuSo0pag4lF94qCxkTi2f3i6ti6/s640/Ebb+flow+tanaman.jpg',
     materialsImage: 'https://images.unsplash.com/photo-1624959462477-c69d45934523?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80'
   },
   {
@@ -70,7 +70,7 @@ const systems: System[] = [
     description: 'Roots are suspended in air and misted with nutrient solution.',
     pros: ['Highest oxygen exposure', 'Fast growth', 'Water efficient'],
     cons: ['Expensive', 'Complex to maintain', 'Requires constant electricity'],
-    systemImage: 'https://images.unsplash.com/photo-1558449028-b53a39d100fc?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80',
+    systemImage: 'https://cdn.idntimes.com/content-images/community/2021/10/sistem-aeroponik-f3648b11058c81fa0757782b0111a96a-2dc2925cee9e7862488c8bd1b5e9afea.jpg',
     materialsImage: 'https://images.unsplash.com/photo-1624959462477-c69d45934523?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80'
   }
 ];
