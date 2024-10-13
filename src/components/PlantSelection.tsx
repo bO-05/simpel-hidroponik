@@ -114,7 +114,7 @@ const PlantSelection: React.FC<PlantSelectionProps> = ({ onSelectPlant }) => {
   const [filterType, setFilterType] = useState<'All' | Plant['type']>('All');
   const [selectedPlants, setSelectedPlants] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [expandedPlant, setExpandedPlant] = useState<string | null>(null);
+  const [expandedPlants, setExpandedPlants] = useState<Set<string>>(new Set());
 
   const sortedPlants = [...plants].sort((a, b) => {
     if (sortBy === 'name') return a.name.localeCompare(b.name);
@@ -140,15 +140,25 @@ const PlantSelection: React.FC<PlantSelectionProps> = ({ onSelectPlant }) => {
         ? prev.filter(name => name !== plantName)
         : [...prev, plantName];
       
-      // Call the onSelectPlant prop with the last selected plant
-      onSelectPlant(newSelection[newSelection.length - 1] || '');
+      // Call the onSelectPlant prop with the selected plant
+      if (!prev.includes(plantName)) {
+        onSelectPlant(plantName);
+      }
       
       return newSelection;
     });
   };
 
   const toggleExpandPlant = (plantName: string) => {
-    setExpandedPlant(expandedPlant === plantName ? null : plantName);
+    setExpandedPlants(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(plantName)) {
+        newSet.delete(plantName);
+      } else {
+        newSet.add(plantName);
+      }
+      return newSet;
+    });
   };
 
   return (
@@ -221,7 +231,7 @@ const PlantSelection: React.FC<PlantSelectionProps> = ({ onSelectPlant }) => {
                 className="text-blue-500 hover:text-blue-700"
                 onClick={() => toggleExpandPlant(plant.name)}
               >
-                {expandedPlant === plant.name ? 'Less Info' : 'More Info'}
+                {expandedPlants.has(plant.name) ? 'Less Info' : 'More Info'}
               </button>
               <button
                 className={`px-2 py-1 rounded ${
@@ -234,7 +244,7 @@ const PlantSelection: React.FC<PlantSelectionProps> = ({ onSelectPlant }) => {
                 {selectedPlants.includes(plant.name) ? 'Remove' : 'Add'}
               </button>
             </div>
-            {expandedPlant === plant.name && (
+            {expandedPlants.has(plant.name) && (
               <div className="mt-2 text-sm text-gray-700">
                 <p><strong>Description:</strong> {plant.description}</p>
                 <p><strong>Nutrient Needs:</strong> {plant.nutrientNeeds}</p>

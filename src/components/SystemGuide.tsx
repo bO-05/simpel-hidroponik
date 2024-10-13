@@ -14,7 +14,6 @@ interface System {
   pros: string[];
   cons: string[];
   systemImage: string;
-  materialsImage: string;
 }
 
 const systems: System[] = [
@@ -27,7 +26,6 @@ const systems: System[] = [
     pros: ['Low cost', 'Easy to set up', 'Low maintenance'],
     cons: ['Limited to small plants', 'Can be less efficient'],
     systemImage: 'https://growwithoutsoil.com/wp-content/uploads/2021/02/Wick-System-buy.jpg',
-    materialsImage: 'https://images.unsplash.com/photo-1615477081663-5e5c9b8bca21?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80'
   },
   {
     name: 'Deep Water Culture (DWC)',
@@ -38,7 +36,6 @@ const systems: System[] = [
     pros: ['Fast growth', 'High yields', 'Good for leafy greens'],
     cons: ['Requires constant electricity', 'Risk of pump failure'],
     systemImage: 'https://www.researchgate.net/profile/Zohaib-Bughio/publication/353911938/figure/fig1/AS:1056870211006465@1628988902666/Deep-water-culture-reservoir-system-used-hydroponic-model.png',
-    materialsImage: 'https://images.unsplash.com/photo-1624958723474-05d32b99c0a3?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80'
   },
   {
     name: 'Nutrient Film Technique (NFT)',
@@ -49,7 +46,6 @@ const systems: System[] = [
     pros: ['Water efficient', 'Scalable', 'Good for commercial use'],
     cons: ['Higher initial cost', 'Requires precise slope'],
     systemImage: 'https://asabi.co.id/wp-content/uploads/2022/04/NFT-System-785x490.jpg',
-    materialsImage: 'https://images.unsplash.com/photo-1624959462477-c69d45934523?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80'
   },
   {
     name: 'Ebb and Flow (Flood and Drain)',
@@ -60,7 +56,6 @@ const systems: System[] = [
     pros: ['Versatile for various plant sizes', 'Efficient nutrient use'],
     cons: ['More complex setup', 'Risk of pump or timer failure'],
     systemImage: 'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh8NzXUiEyH1sB3zFIoiZ8ZZQGPKtRnilitbyAt_sYr4Gn3cjBTkEl3_wKQgvwtYURTjDTYh6DcAVQ2yu4p74vgrm6z0I8WU4iPQfm6tNw3eV4rFh9d_EuSo0pag4lF94qCxkTi2f3i6ti6/s640/Ebb+flow+tanaman.jpg',
-    materialsImage: 'https://images.unsplash.com/photo-1624959462477-c69d45934523?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80'
   },
   {
     name: 'Aeroponics',
@@ -71,7 +66,6 @@ const systems: System[] = [
     pros: ['Highest oxygen exposure', 'Fast growth', 'Water efficient'],
     cons: ['Expensive', 'Complex to maintain', 'Requires constant electricity'],
     systemImage: 'https://cdn.idntimes.com/content-images/community/2021/10/sistem-aeroponik-f3648b11058c81fa0757782b0111a96a-2dc2925cee9e7862488c8bd1b5e9afea.jpg',
-    materialsImage: 'https://images.unsplash.com/photo-1624959462477-c69d45934523?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80'
   }
 ];
 
@@ -168,15 +162,8 @@ const SystemGuide: React.FC<SystemGuideProps> = ({ onSelectSystem }) => {
           {sortedSystems.map((system, index) => (
             <div key={index} className="bg-blue-50 p-4 rounded-lg">
               <h3 className="font-semibold text-lg mb-2">{system.name}</h3>
-              <div className="flex flex-wrap -mx-2 mb-4">
-                <div className="w-full md:w-1/2 px-2 mb-4">
-                  <img src={system.systemImage} alt={`${system.name} system`} className="w-full h-48 object-cover rounded" />
-                  <p className="text-sm text-center mt-1">System Image</p>
-                </div>
-                <div className="w-full md:w-1/2 px-2 mb-4">
-                  <img src={system.materialsImage} alt={`${system.name} materials`} className="w-full h-48 object-cover rounded" />
-                  <p className="text-sm text-center mt-1">Materials Image</p>
-                </div>
+              <div className="mb-4">
+                <img src={system.systemImage} alt={`${system.name} system`} className="w-full h-48 object-cover rounded" />
               </div>
               <p className="flex items-center mb-1">
                 <DollarSign className="mr-2 text-green-600" /> Cost: {getCostLabel(system.cost)}
