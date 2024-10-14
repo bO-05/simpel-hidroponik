@@ -1,5 +1,5 @@
-import React, { useState, ChangeEvent } from 'react';
-import { Sprout, Filter, ArrowUpDown, Search } from 'lucide-react';
+import React, { useState, ChangeEvent, useEffect } from 'react';
+import { Sprout, Filter, ArrowUpDown, Search, Users } from 'lucide-react';
 
 interface Plant {
   name: string;
@@ -11,6 +11,9 @@ interface Plant {
   nutrientNeeds: string;
   idealPh: string;
   harvestTime: string;
+  idealTemperature: string;
+  idealHumidity: string;
+  companions: string[];
 }
 
 interface PlantSelectionProps {
@@ -27,7 +30,10 @@ const plants: Plant[] = [
     description: 'Fast-growing, nutritious leafy green popular in Southeast Asian cuisine.',
     nutrientNeeds: 'Low to moderate',
     idealPh: '5.5 - 6.5',
-    harvestTime: '3-4 weeks after planting'
+    harvestTime: '3-4 weeks after planting',
+    idealTemperature: '25°C - 30°C',
+    idealHumidity: '60% - 70%',
+    companions: ['Bayam (Spinach)', 'Selada (Lettuce)']
   },
   { 
     name: 'Bayam (Spinach)', 
@@ -38,7 +44,10 @@ const plants: Plant[] = [
     description: 'Nutrient-dense leafy green, rich in iron and vitamins.',
     nutrientNeeds: 'Moderate',
     idealPh: '6.0 - 7.0',
-    harvestTime: '4-6 weeks after planting'
+    harvestTime: '4-6 weeks after planting',
+    idealTemperature: '20°C - 25°C',
+    idealHumidity: '50% - 60%',
+    companions: ['Kangkung (Water Spinach)', 'Selada (Lettuce)', 'Tomat (Tomato)']
   },
   { 
     name: 'Selada (Lettuce)', 
@@ -49,7 +58,10 @@ const plants: Plant[] = [
     description: 'Crisp and refreshing, perfect for salads and sandwiches.',
     nutrientNeeds: 'Low',
     idealPh: '6.0 - 7.0',
-    harvestTime: '4-5 weeks after planting'
+    harvestTime: '4-5 weeks after planting',
+    idealTemperature: '15°C - 22°C',
+    idealHumidity: '60% - 70%',
+    companions: ['Kangkung (Water Spinach)', 'Bayam (Spinach)', 'Tomat (Tomato)']
   },
   { 
     name: 'Pakcoy (Bok Choy)', 
@@ -60,7 +72,10 @@ const plants: Plant[] = [
     description: 'Mild-flavored Chinese cabbage, great for stir-fries.',
     nutrientNeeds: 'Moderate',
     idealPh: '6.0 - 7.0',
-    harvestTime: '5-7 weeks after planting'
+    harvestTime: '5-7 weeks after planting',
+    idealTemperature: '18°C - 24°C',
+    idealHumidity: '55% - 65%',
+    companions: ['Tomat (Tomato)', 'Timun (Cucumber)']
   },
   { 
     name: 'Cabe (Chili)', 
@@ -71,7 +86,10 @@ const plants: Plant[] = [
     description: 'Spicy fruit used to add heat and flavor to dishes.',
     nutrientNeeds: 'High',
     idealPh: '5.5 - 6.8',
-    harvestTime: '8-10 weeks after flowering'
+    harvestTime: '8-10 weeks after flowering',
+    idealTemperature: '20°C - 30°C',
+    idealHumidity: '60% - 70%',
+    companions: ['Tomat (Tomato)', 'Bawang Merah (Shallot)']
   },
   { 
     name: 'Tomat (Tomato)', 
@@ -82,7 +100,10 @@ const plants: Plant[] = [
     description: 'Versatile fruit used in many cuisines, rich in vitamins.',
     nutrientNeeds: 'High',
     idealPh: '5.5 - 6.5',
-    harvestTime: '8-10 weeks after flowering'
+    harvestTime: '8-10 weeks after flowering',
+    idealTemperature: '18°C - 27°C',
+    idealHumidity: '65% - 75%',
+    companions: ['Bayam (Spinach)', 'Selada (Lettuce)', 'Pakcoy (Bok Choy)', 'Cabe (Chili)']
   },
   { 
     name: 'Timun (Cucumber)', 
@@ -93,7 +114,10 @@ const plants: Plant[] = [
     description: 'Refreshing fruit often used in salads and pickles.',
     nutrientNeeds: 'Moderate',
     idealPh: '5.5 - 6.5',
-    harvestTime: '6-8 weeks after planting'
+    harvestTime: '6-8 weeks after planting',
+    idealTemperature: '22°C - 28°C',
+    idealHumidity: '70% - 80%',
+    companions: ['Pakcoy (Bok Choy)', 'Bawang Merah (Shallot)']
   },
   { 
     name: 'Bawang Merah (Shallot)', 
@@ -104,7 +128,10 @@ const plants: Plant[] = [
     description: 'Flavorful bulb used as a seasoning in many dishes.',
     nutrientNeeds: 'Moderate',
     idealPh: '6.0 - 6.8',
-    harvestTime: '10-12 weeks after planting'
+    harvestTime: '10-12 weeks after planting',
+    idealTemperature: '15°C - 25°C',
+    idealHumidity: '60% - 70%',
+    companions: ['Cabe (Chili)', 'Timun (Cucumber)']
   },
 ];
 
@@ -115,6 +142,33 @@ const PlantSelection: React.FC<PlantSelectionProps> = ({ onSelectPlant }) => {
   const [selectedPlants, setSelectedPlants] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedPlants, setExpandedPlants] = useState<Set<string>>(new Set());
+  const [recommendedPlants, setRecommendedPlants] = useState<Plant[]>([]);
+  const [userPreferences, setUserPreferences] = useState({
+    temperature: '',
+    humidity: '',
+    experience: ''
+  });
+
+  useEffect(() => {
+    if (userPreferences.temperature && userPreferences.humidity && userPreferences.experience) {
+      const recommended = plants.filter(plant => {
+        const [minTemp, maxTemp] = plant.idealTemperature.split(' - ').map(t => parseInt(t));
+        const [minHumidity, maxHumidity] = plant.idealHumidity.split(' - ').map(h => parseInt(h));
+        const userTemp = parseInt(userPreferences.temperature);
+        const userHumidity = parseInt(userPreferences.humidity);
+
+        const tempMatch = userTemp >= minTemp && userTemp <= maxTemp;
+        const humidityMatch = userHumidity >= minHumidity && userHumidity <= maxHumidity;
+        const difficultyMatch = 
+          (userPreferences.experience === 'Beginner' && plant.difficulty === 'Easy') ||
+          (userPreferences.experience === 'Intermediate' && (plant.difficulty === 'Easy' || plant.difficulty === 'Medium')) ||
+          (userPreferences.experience === 'Advanced');
+
+        return tempMatch && humidityMatch && difficultyMatch;
+      });
+      setRecommendedPlants(recommended);
+    }
+  }, [userPreferences]);
 
   const sortedPlants = [...plants].sort((a, b) => {
     if (sortBy === 'name') return a.name.localeCompare(b.name);
@@ -161,9 +215,57 @@ const PlantSelection: React.FC<PlantSelectionProps> = ({ onSelectPlant }) => {
     });
   };
 
+  const getCompanionPlants = (plantName: string): string[] => {
+    const plant = plants.find(p => p.name === plantName);
+    return plant ? plant.companions : [];
+  };
+
   return (
     <div>
       <h2 className="text-2xl font-semibold mb-4">Recommended Plants for Jakarta</h2>
+      <div className="mb-4 p-4 bg-blue-100 rounded-lg">
+        <h3 className="text-lg font-semibold mb-2">Get Personalized Plant Recommendations</h3>
+        <div className="flex flex-wrap gap-4">
+          <input
+            type="number"
+            placeholder="Average Temperature (°C)"
+            className="border rounded p-2"
+            value={userPreferences.temperature}
+            onChange={(e) => setUserPreferences(prev => ({ ...prev, temperature: e.target.value }))}
+          />
+          <input
+            type="number"
+            placeholder="Average Humidity (%)"
+            className="border rounded p-2"
+            value={userPreferences.humidity}
+            onChange={(e) => setUserPreferences(prev => ({ ...prev, humidity: e.target.value }))}
+          />
+          <select
+            className="border rounded p-2"
+            value={userPreferences.experience}
+            onChange={(e) => setUserPreferences(prev => ({ ...prev, experience: e.target.value }))}
+          >
+            <option value="">Select Experience Level</option>
+            <option value="Beginner">Beginner</option>
+            <option value="Intermediate">Intermediate</option>
+            <option value="Advanced">Advanced</option>
+          </select>
+        </div>
+      </div>
+      {recommendedPlants.length > 0 && (
+        <div className="mb-8 p-4 bg-green-100 rounded-lg">
+          <h3 className="text-lg font-semibold mb-2">Recommended Plants for You</h3>
+          <div className="flex flex-wrap gap-4">
+            {recommendedPlants.map((plant, index) => (
+              <div key={index} className="bg-white p-2 rounded-lg shadow-md">
+                <img src={plant.image} alt={plant.name} className="w-24 h-24 object-cover rounded-md mb-2" />
+                <p className="font-semibold">{plant.name}</p>
+                <p className="text-sm text-gray-600">{plant.difficulty}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="flex flex-wrap justify-between mb-4 gap-2">
         <div className="flex items-center">
           <Search className="mr-2" />
@@ -250,6 +352,9 @@ const PlantSelection: React.FC<PlantSelectionProps> = ({ onSelectPlant }) => {
                 <p><strong>Nutrient Needs:</strong> {plant.nutrientNeeds}</p>
                 <p><strong>Ideal pH:</strong> {plant.idealPh}</p>
                 <p><strong>Harvest Time:</strong> {plant.harvestTime}</p>
+                <p><strong>Ideal Temperature:</strong> {plant.idealTemperature}</p>
+                <p><strong>Ideal Humidity:</strong> {plant.idealHumidity}</p>
+                <p><strong>Companion Plants:</strong> {plant.companions.join(', ')}</p>
               </div>
             )}
           </div>
@@ -260,9 +365,13 @@ const PlantSelection: React.FC<PlantSelectionProps> = ({ onSelectPlant }) => {
           <h3 className="text-xl font-semibold mb-2">Your Hydroponic Garden</h3>
           <ul>
             {selectedPlants.map((plant, index) => (
-              <li key={index} className="flex items-center">
+              <li key={index} className="flex items-center mb-2">
                 <Sprout className="mr-2 text-green-600" />
-                {plant}
+                <span className="flex-grow">{plant}</span>
+                <Users className="mr-2 text-blue-600" />
+                <span className="text-sm text-gray-600">
+                  Companions: {getCompanionPlants(plant).join(', ')}
+                </span>
               </li>
             ))}
           </ul>
