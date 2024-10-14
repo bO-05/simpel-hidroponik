@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Sprout, Droplet, Sun, Thermometer, Clipboard, LineChart, Calculator, Bell, Menu } from 'lucide-react';
+import Dashboard from './components/Dashboard';
 import PlantSelection from './components/PlantSelection';
 import SystemGuide from './components/SystemGuide';
 import NutrientManagement from './components/NutrientManagement';
@@ -10,59 +11,38 @@ import MaintenanceChecklist from './components/MaintenanceChecklist';
 import PlantGrowthTracker from './components/PlantGrowthTracker';
 import NutrientCalculator from './components/NutrientCalculator';
 import CareReminders from './components/CareReminders';
-import useLocalStorage from './hooks/useLocalStorage';
-import { Plant } from './types';
+import { Plant, PlantSystemPair } from './types';
 
-export interface PlantSystemPair {
-  id: string;
-  plant: string;
-  system: string;
-}
-
-function App() {
-  const [activeTab, setActiveTab] = useState('plants');
-  const [selectedPairs, setSelectedPairs] = useLocalStorage<PlantSystemPair[]>('selectedPairs', []);
-  const [selectedPlants, setSelectedPlants] = useState<Plant[]>([]);
+const App: React.FC = () => {
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [selectedPlants, setSelectedPlants] = useState<Plant[]>([]);
+  const [selectedPairs, setSelectedPairs] = useState<PlantSystemPair[]>([]);
 
-  const addPair = (plant: Plant, system: string) => {
-    const newPair: PlantSystemPair = {
-      id: Date.now().toString(),
-      plant: plant.name,
-      system,
-    };
-    setSelectedPairs(prev => [...prev, newPair]);
-  };
+  const toggleSidebar = useCallback(() => {
+    setIsSidebarOpen(prev => !prev);
+  }, []);
 
-  const updatePairSystem = (system: string) => {
-    setSelectedPairs(prev => {
-      const lastPair = prev[prev.length - 1];
-      if (lastPair && !lastPair.system) {
-        const updatedPairs = [...prev];
-        updatedPairs[updatedPairs.length - 1] = { ...lastPair, system };
-        return updatedPairs;
-      }
-      return [...prev, { id: Date.now().toString(), plant: '', system }];
-    });
-  };
-
-  const handleSelectPlant = (plant: Plant) => {
+  const handleSelectPlant = useCallback((plant: Plant) => {
     setSelectedPlants(prev => {
       const isAlreadySelected = prev.some(p => p.name === plant.name);
       if (isAlreadySelected) {
         return prev.filter(p => p.name !== plant.name);
       } else {
-        addPair(plant, '');
         return [...prev, plant];
       }
     });
-  };
+  }, []);
 
-  const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
-  };
+  const handleSelectSystem = useCallback((system: string) => {
+    setSelectedPairs(prev => [
+      ...prev,
+      { id: Date.now().toString(), plant: '', system }
+    ]);
+  }, []);
 
-  const navItems = [
+  const navItems = useMemo(() => [
+    { id: 'dashboard', icon: Sprout, label: 'Dashboard' },
     { id: 'plants', icon: Sprout, label: 'Plants' },
     { id: 'systems', icon: Droplet, label: 'Systems' },
     { id: 'nutrients', icon: Sun, label: 'Nutrients' },
@@ -71,7 +51,32 @@ function App() {
     { id: 'growth-tracker', icon: LineChart, label: 'Growth Tracker' },
     { id: 'nutrient-calculator', icon: Calculator, label: 'Nutrient Calculator' },
     { id: 'care-reminders', icon: Bell, label: 'Care Reminders' },
-  ];
+  ], []);
+
+  const renderActiveTab = useCallback(() => {
+    switch (activeTab) {
+      case 'dashboard':
+        return <Dashboard />;
+      case 'plants':
+        return <PlantSelection onSelectPlant={handleSelectPlant} selectedPlants={selectedPlants} />;
+      case 'systems':
+        return <SystemGuide onSelectSystem={handleSelectSystem} selectedPairs={selectedPairs} />;
+      case 'nutrients':
+        return <NutrientManagement />;
+      case 'timeline':
+        return <GrowthTimeline />;
+      case 'checklist':
+        return <MaintenanceChecklist selectedPairs={selectedPairs} />;
+      case 'growth-tracker':
+        return <PlantGrowthTracker selectedPlants={selectedPlants} />;
+      case 'nutrient-calculator':
+        return <NutrientCalculator selectedPairs={selectedPairs} />;
+      case 'care-reminders':
+        return <CareReminders selectedPlants={selectedPlants.map(p => p.name)} />;
+      default:
+        return null;
+    }
+  }, [activeTab, handleSelectPlant, handleSelectSystem, selectedPlants, selectedPairs]);
 
   return (
     <DndProvider backend={HTML5Backend}>
@@ -104,35 +109,12 @@ function App() {
               <h1 className="text-2xl font-bold flex items-center text-green-600">
                 <Sprout className="mr-2" /> Hydroponic Home Gardener
               </h1>
-              <div className="text-sm text-gray-600">
-                <p>Jakarta, Indonesia</p>
-              </div>
             </div>
           </header>
 
           <main className="container mx-auto p-4">
             <div className="bg-white rounded-lg shadow-lg p-6">
-              {activeTab === 'plants' && (
-                <PlantSelection
-                  onSelectPlant={handleSelectPlant}
-                  selectedPlants={selectedPlants}
-                />
-              )}
-              {activeTab === 'systems' && <SystemGuide onSelectSystem={updatePairSystem} />}
-              {activeTab === 'nutrients' && <NutrientManagement />}
-              {activeTab === 'timeline' && <GrowthTimeline />}
-              {activeTab === 'checklist' && (
-                <MaintenanceChecklist selectedPairs={selectedPairs} />
-              )}
-              {activeTab === 'growth-tracker' && (
-                <PlantGrowthTracker selectedPlants={selectedPlants} />
-              )}
-              {activeTab === 'nutrient-calculator' && (
-                <NutrientCalculator selectedPairs={selectedPairs} />
-              )}
-              {activeTab === 'care-reminders' && (
-                <CareReminders selectedPlants={selectedPlants.map(p => p.name)} />
-              )}
+              {renderActiveTab()}
             </div>
           </main>
 
@@ -145,6 +127,6 @@ function App() {
       </div>
     </DndProvider>
   );
-}
+};
 
 export default App;

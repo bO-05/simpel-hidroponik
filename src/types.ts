@@ -14,3 +14,9 @@ export interface Plant {
 }
 
 export type PlantStage = 'seedling' | 'vegetative' | 'flowering' | 'harvest';
+
+export interface PlantSystemPair {
+  id: string;
+  plant: string;
+  system: string;
+}
