@@ -1,69 +1,133 @@
-import React from 'react';
-import { Calendar, Sun, Cloud, Droplet } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Thermometer } from 'lucide-react';
+import { supabase } from '../supabaseClient';
+import { Plant } from '../types';
 
-const GrowthTimeline: React.FC = () => {
+interface PlantGrowth {
+  id: string;
+  plantId: string;
+  currentStage: string;
+  startDate: string;
+}
+
+interface GrowthTimelineProps {
+  selectedPlants: Plant[];
+}
+
+const growthStages = [
+  { name: 'Germination', description: 'Seeds start to sprout' },
+  { name: 'Seedling', description: 'First leaves appear' },
+  { name: 'Vegetative', description: 'Rapid growth of leaves and stems' },
+  { name: 'Budding', description: 'First signs of flower buds' },
+  { name: 'Flowering', description: 'Flowers bloom' },
+  { name: 'Ripening', description: 'Fruits or vegetables begin to mature' },
+  { name: 'Harvesting', description: 'Ready to be harvested' }
+];
+
+const GrowthTimeline: React.FC<GrowthTimelineProps> = ({ selectedPlants }) => {
+  const [plantGrowth, setPlantGrowth] = useState<PlantGrowth[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchPlantGrowth();
+  }, [selectedPlants]);
+
+  async function fetchPlantGrowth() {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('plant_growth')
+        .select('*')
+        .in('plantId', selectedPlants.map(p => p.id));
+      
+      if (error) {
+        throw error;
+      }
+      
+      if (data) {
+        setPlantGrowth(data);
+      }
+    } catch (error) {
+      console.error('Error fetching plant growth data:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const updateGrowthStage = async (id: string, newStage: string) => {
+    try {
+      const { error } = await supabase
+        .from('plant_growth')
+        .update({ currentStage: newStage })
+        .eq('id', id);
+
+      if (error) {
+        throw error;
+      }
+
+      setPlantGrowth(plantGrowth.map(plant => 
+        plant.id === id ? { ...plant, currentStage: newStage } : plant
+      ));
+    } catch (error) {
+      console.error('Error updating growth stage:', error);
+    }
+  };
+
+  const calculateGrowthPercentage = (plant: PlantGrowth): number => {
+    const currentStageIndex = growthStages.findIndex(stage => stage.name === plant.currentStage);
+    return Math.round((currentStageIndex + 1) / growthStages.length * 100);
+  };
+
+  if (loading) {
+    return <div>Loading growth timeline...</div>;
+  }
+
   return (
-    <div>
-      <h2 className="text-xl font-semibold mb-4">Growth Timeline</h2>
+    <div className="space-y-4">
+      <h2 className="text-2xl font-bold mb-4 flex items-center">
+        <Thermometer className="mr-2" /> Growth Timeline
+      </h2>
+      <p className="text-gray-600 mb-4">
+        Track the growth stages of your plants. Update the current stage as your plants progress.
+      </p>
       <div className="space-y-6">
-        <div className="bg-green-50 p-4 rounded-lg">
-          <h3 className="font-semibold flex items-center">
-            <Calendar className="mr-2 text-green-600" /> General Timeline
-          </h3>
-          <ul className="mt-2 space-y-2">
-            <li><strong>Week 1-2:</strong> Germination and seedling stage</li>
-            <li><strong>Week 3-4:</strong> Early growth stage</li>
-            <li><strong>Week 5-6:</strong> Rapid growth stage</li>
-            <li><strong>Week 7-8:</strong> Maturation and harvesting (for most leafy greens)</li>
-            <li><strong>Week 9+:</strong> Extended growth and multiple harvests (for some plants like chili)</li>
-          </ul>
-        </div>
-
-        <div className="bg-yellow-50 p-4 rounded-lg">
-          <h3 className="font-semibold flex items-center">
-            <Sun className="mr-2 text-yellow-600" /> Jakarta's Climate Considerations
-          </h3>
-          <p className="mt-2">
-            Jakarta's tropical climate affects plant growth. Consider these factors:
-          </p>
-          <ul className="mt-2 list-disc list-inside">
-            <li>Year-round warm temperatures accelerate growth</li>
-            <li>High humidity may increase the risk of fungal diseases</li>
-            <li>Rainy season (October to April) may affect outdoor systems</li>
-          </ul>
-        </div>
-
-        <div className="bg-blue-50 p-4 rounded-lg">
-          <h3 className="font-semibold flex items-center">
-            <Cloud className="mr-2 text-blue-600" /> Seasonal Adjustments
-          </h3>
-          <div className="mt-2 space-y-2">
-            <p><strong>Dry Season (May to September):</strong></p>
-            <ul className="list-disc list-inside ml-4">
-              <li>Monitor water levels closely</li>
-              <li>Provide shade during peak sun hours</li>
-              <li>Increase frequency of nutrient solution changes</li>
-            </ul>
-            <p><strong>Wet Season (October to April):</strong></p>
-            <ul className="list-disc list-inside ml-4">
-              <li>Protect systems from heavy rain if outdoors</li>
-              <li>Monitor for pests that may be more active</li>
-              <li>Ensure good air circulation to prevent mold</li>
-            </ul>
-          </div>
-        </div>
-
-        <div className="bg-purple-50 p-4 rounded-lg">
-          <h3 className="font-semibold flex items-center">
-            <Droplet className="mr-2 text-purple-600" /> Maintenance Schedule
-          </h3>
-          <ul className="mt-2 space-y-2">
-            <li><strong>Daily:</strong> Check water levels and plant health</li>
-            <li><strong>Weekly:</strong> Test and adjust pH and EC levels</li>
-            <li><strong>Bi-weekly:</strong> Change nutrient solution</li>
-            <li><strong>Monthly:</strong> Deep clean system and check for any needed repairs</li>
-          </ul>
-        </div>
+        {selectedPlants.map((plant) => {
+          const growth = plantGrowth.find(pg => pg.plantId === plant.id);
+          return (
+            <div key={plant.id} className="border rounded-lg p-4">
+              <h3 className="text-lg font-semibold mb-2">{plant.name}</h3>
+              {growth ? (
+                <>
+                  <p className="text-sm text-gray-600 mb-2">Start Date: {new Date(growth.startDate).toLocaleDateString()}</p>
+                  <div className="mb-4">
+                    <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+                      <div className="bg-green-600 h-2.5 rounded-full" style={{width: `${calculateGrowthPercentage(growth)}%`}}></div>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1">Growth Progress: {calculateGrowthPercentage(growth)}%</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {growthStages.map((stage) => (
+                      <button
+                        key={stage.name}
+                        onClick={() => updateGrowthStage(growth.id, stage.name)}
+                        className={`px-3 py-1 rounded-full text-sm ${
+                          growth.currentStage === stage.name
+                            ? 'bg-green-500 text-white'
+                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                        }`}
+                        title={stage.description}
+                      >
+                        {stage.name}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <p className="text-yellow-600">No growth data available for this plant.</p>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

@@ -1,86 +1,162 @@
 import React, { useState, useEffect } from 'react';
-import { Plant, PlantStage } from '../types';
-import { Sprout, Leaf, Flower, Apple } from 'lucide-react';
+import { LineChart } from 'lucide-react';
+import { supabase } from '../supabaseClient';
+
+interface GrowthRecord {
+  id: string;
+  plantId: string;
+  date: string;
+  height: number;
+  numLeaves: number;
+}
+
+interface Plant {
+  id: string;
+  name: string;
+}
 
 interface PlantGrowthTrackerProps {
   selectedPlants: Plant[];
 }
 
 const PlantGrowthTracker: React.FC<PlantGrowthTrackerProps> = ({ selectedPlants }) => {
-  const [plantProgress, setPlantProgress] = useState<Record<string, PlantStage>>({});
+  const [growthRecords, setGrowthRecords] = useState<GrowthRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [newRecords, setNewRecords] = useState<{[key: string]: {height: string, numLeaves: string}}>({});
 
   useEffect(() => {
-    const initialProgress: Record<string, PlantStage> = {};
-    selectedPlants.forEach(plant => {
-      initialProgress[plant.name] = 'seedling';
-    });
-    setPlantProgress(initialProgress);
+    if (selectedPlants.length > 0) {
+      fetchGrowthRecords();
+    }
   }, [selectedPlants]);
 
-  const getStageIcon = (stage: PlantStage) => {
-    switch (stage) {
-      case 'seedling':
-        return <Sprout className="text-green-500" />;
-      case 'vegetative':
-        return <Leaf className="text-green-600" />;
-      case 'flowering':
-        return <Flower className="text-pink-500" />;
-      case 'harvest':
-        return <Apple className="text-red-500" />;
+  async function fetchGrowthRecords() {
+    try {
+      setLoading(true);
+      const plantIds = selectedPlants.map(plant => plant.id);
+      const { data, error } = await supabase
+        .from('growth_records')
+        .select('*')
+        .in('plantId', plantIds)
+        .order('date', { ascending: true });
+      
+      if (error) {
+        throw error;
+      }
+      
+      if (data) {
+        setGrowthRecords(data);
+      }
+    } catch (error) {
+      console.error('Error fetching growth records:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const addGrowthRecord = async (plantId: string) => {
+    try {
+      const { height, numLeaves } = newRecords[plantId];
+      const newRecord = {
+        plantId,
+        date: new Date().toISOString(),
+        height: parseFloat(height),
+        numLeaves: parseInt(numLeaves, 10)
+      };
+
+      const { data, error } = await supabase
+        .from('growth_records')
+        .insert([newRecord])
+        .select();
+
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        setGrowthRecords([...growthRecords, ...data]);
+        // Clear the input fields after successful addition
+        setNewRecords({...newRecords, [plantId]: {height: '', numLeaves: ''}});
+      }
+    } catch (error) {
+      console.error('Error adding growth record:', error);
     }
   };
 
-  const advanceStage = (plantName: string) => {
-    setPlantProgress(prev => {
-      const currentStage = prev[plantName];
-      let nextStage: PlantStage = currentStage;
-      
-      switch (currentStage) {
-        case 'seedling':
-          nextStage = 'vegetative';
-          break;
-        case 'vegetative':
-          nextStage = 'flowering';
-          break;
-        case 'flowering':
-          nextStage = 'harvest';
-          break;
-        case 'harvest':
-          nextStage = 'seedling';
-          break;
-      }
+  const renderGrowthChart = (plantId: string) => {
+    const plantRecords = growthRecords.filter(record => record.plantId === plantId);
+    
+    // This is a simple representation. You might want to use a proper charting library for a more sophisticated chart.
+    return (
+      <div className="h-40 flex items-end space-x-1">
+        {plantRecords.map((record) => (
+          <div 
+            key={record.id} 
+            className="bg-green-500 w-4"
+            style={{ height: `${record.height}%` }}
+            title={`Date: ${new Date(record.date).toLocaleDateString()}, Height: ${record.height}cm, Leaves: ${record.numLeaves}`}
+          ></div>
+        ))}
+      </div>
+    );
+  };
 
-      return { ...prev, [plantName]: nextStage };
+  const handleInputChange = (plantId: string, field: 'height' | 'numLeaves', value: string) => {
+    setNewRecords({
+      ...newRecords,
+      [plantId]: {
+        ...newRecords[plantId],
+        [field]: value
+      }
     });
   };
 
+  if (loading) {
+    return <div>Loading growth tracker...</div>;
+  }
+
   return (
-    <div className="mt-8">
-      <h2 className="text-2xl font-semibold mb-4">Plant Growth Tracker</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {selectedPlants.map(plant => (
-          <div key={plant.name} className="bg-white p-4 rounded-lg shadow-md">
-            <h3 className="font-semibold text-lg mb-2">{plant.name}</h3>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                {getStageIcon(plantProgress[plant.name])}
-                <span className="ml-2 capitalize">{plantProgress[plant.name]}</span>
+    <div className="space-y-4">
+      <h2 className="text-2xl font-bold mb-4 flex items-center">
+        <LineChart className="mr-2" /> Plant Growth Tracker
+      </h2>
+      <p className="text-gray-600 mb-4">
+        Track the growth of your plants over time. Add new measurements regularly to see progress.
+      </p>
+      {selectedPlants.length === 0 ? (
+        <p className="text-yellow-600">Please select plants to track their growth.</p>
+      ) : (
+        <div className="space-y-8">
+          {selectedPlants.map((plant) => (
+            <div key={plant.id} className="border rounded-lg p-4">
+              <h3 className="text-lg font-semibold mb-2">{plant.name}</h3>
+              {renderGrowthChart(plant.id)}
+              <div className="mt-4 flex space-x-4">
+                <input
+                  type="number"
+                  placeholder="Height (cm)"
+                  className="border rounded px-2 py-1"
+                  value={newRecords[plant.id]?.height || ''}
+                  onChange={(e) => handleInputChange(plant.id, 'height', e.target.value)}
+                />
+                <input
+                  type="number"
+                  placeholder="Number of leaves"
+                  className="border rounded px-2 py-1"
+                  value={newRecords[plant.id]?.numLeaves || ''}
+                  onChange={(e) => handleInputChange(plant.id, 'numLeaves', e.target.value)}
+                />
+                <button
+                  onClick={() => addGrowthRecord(plant.id)}
+                  className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+                >
+                  Add Record
+                </button>
               </div>
-              <button
-                onClick={() => advanceStage(plant.name)}
-                className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
-              >
-                Advance Stage
-              </button>
             </div>
-            <div className="mt-4">
-              <p className="text-sm text-gray-600">
-                {plant.growthTime} weeks to harvest
-              </p>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

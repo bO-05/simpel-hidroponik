@@ -1,50 +1,114 @@
-import React from 'react';
-import { Beaker, Thermometer, Droplet } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Sun, AlertTriangle } from 'lucide-react';
+import { Plant } from '../types';
+import { supabase } from '../supabaseClient';
 
-const NutrientManagement: React.FC = () => {
+interface NutrientLevel {
+  plantId: string;
+  nitrogen: number;
+  phosphorus: number;
+  potassium: number;
+}
+
+interface NutrientManagementProps {
+  selectedPlants: Plant[];
+}
+
+const NutrientManagement: React.FC<NutrientManagementProps> = ({ selectedPlants }) => {
+  const [nutrientLevels, setNutrientLevels] = useState<NutrientLevel[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchNutrientLevels();
+  }, []);
+
+  async function fetchNutrientLevels() {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('nutrient_levels')
+        .select('*')
+        .in('plantId', selectedPlants.map(p => p.id));
+      
+      if (error) {
+        throw error;
+      }
+      
+      if (data) {
+        setNutrientLevels(data);
+      }
+    } catch (error) {
+      console.error('Error fetching nutrient levels:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const updateNutrientLevel = async (plantId: string, nutrient: keyof Omit<NutrientLevel, 'plantId'>, level: number) => {
+    try {
+      const { error } = await supabase
+        .from('nutrient_levels')
+        .update({ [nutrient]: level })
+        .eq('plantId', plantId);
+
+      if (error) {
+        throw error;
+      }
+
+      setNutrientLevels(prevLevels => 
+        prevLevels.map(pl => 
+          pl.plantId === plantId ? { ...pl, [nutrient]: level } : pl
+        )
+      );
+    } catch (error) {
+      console.error('Error updating nutrient level:', error);
+    }
+  };
+
+  if (loading) {
+    return <div>Loading nutrient management...</div>;
+  }
+
   return (
-    <div>
-      <h2 className="text-xl font-semibold mb-4">Nutrient Management</h2>
-      <div className="space-y-6">
-        <div className="bg-yellow-50 p-4 rounded-lg">
-          <h3 className="font-semibold flex items-center">
-            <Beaker className="mr-2 text-yellow-600" /> Basic Nutrient Solution
-          </h3>
-          <p className="mt-2">
-            For most leafy greens and herbs, use a balanced hydroponic nutrient solution. You can find affordable options at local gardening stores or online marketplaces in Jakarta.
-          </p>
-          <p className="mt-2">
-            Recommended EC (Electrical Conductivity) range: 1.0 - 1.4 mS/cm for leafy greens.
-          </p>
+    <div className="space-y-4">
+      <h2 className="text-2xl font-bold mb-4 flex items-center">
+        <Sun className="mr-2" /> Nutrient Management
+      </h2>
+      {selectedPlants.length === 0 ? (
+        <p className="text-yellow-600 flex items-center">
+          <AlertTriangle className="mr-2" /> No plants selected. Please select plants to manage their nutrients.
+        </p>
+      ) : (
+        <div className="space-y-6">
+          {selectedPlants.map((plant) => {
+            const plantNutrients = nutrientLevels.find(nl => nl.plantId === plant.id) || 
+              { plantId: plant.id, nitrogen: 5, phosphorus: 5, potassium: 5 };
+            return (
+              <div key={plant.id} className="border rounded-lg p-4">
+                <h3 className="text-lg font-semibold mb-2">{plant.name}</h3>
+                {['nitrogen', 'phosphorus', 'potassium'].map((nutrient) => (
+                  <div key={nutrient} className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 capitalize mb-1">
+                      {nutrient}
+                    </label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="10"
+                      value={plantNutrients[nutrient as keyof Omit<NutrientLevel, 'plantId'>]}
+                      onChange={(e) => updateNutrientLevel(plant.id, nutrient as keyof Omit<NutrientLevel, 'plantId'>, parseInt(e.target.value))}
+                      className="w-full"
+                    />
+                    <span className="text-sm font-semibold">
+                      Level: {plantNutrients[nutrient as keyof Omit<NutrientLevel, 'plantId'>]}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
         </div>
-
-        <div className="bg-red-50 p-4 rounded-lg">
-          <h3 className="font-semibold flex items-center">
-            <Thermometer className="mr-2 text-red-600" /> pH Management
-          </h3>
-          <p className="mt-2">
-            Maintain pH levels between 5.5 and 6.5 for optimal nutrient uptake. Use pH testing kits and adjusters available in local hydroponics shops.
-          </p>
-        </div>
-
-        <div className="bg-blue-50 p-4 rounded-lg">
-          <h3 className="font-semibold flex items-center">
-            <Droplet className="mr-2 text-blue-600" /> Water Quality
-          </h3>
-          <p className="mt-2">
-            Use filtered or rainwater if possible. If using tap water, let it sit for 24 hours to allow chlorine to evaporate.
-          </p>
-        </div>
-
-        <div className="mt-4">
-          <h3 className="font-semibold">Tips for Jakarta's Climate:</h3>
-          <ul className="list-disc list-inside mt-2">
-            <li>Change nutrient solution every 1-2 weeks to prevent salt buildup.</li>
-            <li>In hot weather, check water levels daily and top up with plain water as needed.</li>
-            <li>Consider using a shade cloth during the hottest parts of the day to prevent nutrient solution from overheating.</li>
-          </ul>
-        </div>
-      </div>
+      )}
     </div>
   );
 };

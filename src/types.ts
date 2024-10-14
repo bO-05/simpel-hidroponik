@@ -1,6 +1,7 @@
 export interface Plant {
+  id: string;
   name: string;
-  difficulty: 'Easy' | 'Medium' | 'Hard';
+  difficulty: string;
   growthTime: number;
   type: string;
   image: string;

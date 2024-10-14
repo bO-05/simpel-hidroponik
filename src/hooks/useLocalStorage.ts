@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
 
-function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T | ((val: T) => T)) => void] {
-  const readValue = (): T => {
+type SetValue<T> = (value: T | ((val: T) => T)) => void;
+
+function useLocalStorage<T>(key: string, initialValue: T): [T, SetValue<T>] {
+  // Get from local storage then
+  // parse stored json or return initialValue
+  const readValue = () => {
     if (typeof window === 'undefined') {
       return initialValue;
     }
@@ -15,12 +19,20 @@ function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T | ((val
     }
   };
 
+  // State to store our value
+  // Pass initial state function to useState so logic is only executed once
   const [storedValue, setStoredValue] = useState<T>(readValue);
 
-  const setValue = (value: T | ((val: T) => T)) => {
+  // Return a wrapped version of useState's setter function that ...
+  // ... persists the new value to localStorage.
+  const setValue: SetValue<T> = (value) => {
     try {
-      const valueToStore = value instanceof Function ? value(storedValue) : value;
+      // Allow value to be a function so we have same API as useState
+      const valueToStore =
+        value instanceof Function ? value(storedValue) : value;
+      // Save state
       setStoredValue(valueToStore);
+      // Save to local storage
       if (typeof window !== 'undefined') {
         window.localStorage.setItem(key, JSON.stringify(valueToStore));
       }

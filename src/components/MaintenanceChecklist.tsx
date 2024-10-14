@@ -1,12 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { CheckSquare, Square, Clock, Calendar } from 'lucide-react';
-import { PlantSystemPair } from '../App';
+import { Clipboard, Check, AlertTriangle } from 'lucide-react';
+import { supabase } from '../supabaseClient';
 
-interface Task {
+interface MaintenanceTask {
   id: string;
-  description: string;
-  frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly';
-  completed: boolean;
+  task: string;
+  frequency: string;
+  lastCompleted: string | null;
+  systemType: string;
+  plantType?: string;
+  growthStage?: string;
+}
+
+interface PlantSystemPair {
+  id: string;
+  plant: string;
+  system: string;
 }
 
 interface MaintenanceChecklistProps {
@@ -14,110 +23,117 @@ interface MaintenanceChecklistProps {
 }
 
 const MaintenanceChecklist: React.FC<MaintenanceChecklistProps> = ({ selectedPairs }) => {
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [tasks, setTasks] = useState<MaintenanceTask[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (selectedPairs.length > 0) {
-      const generatedTasks = selectedPairs.flatMap(pair => generateTasks(pair.plant, pair.system));
-      setTasks(generatedTasks);
-    } else {
-      setTasks([]);
-    }
+    fetchTasks();
   }, [selectedPairs]);
 
-  const generateTasks = (plant: string, system: string): Task[] => {
-    const commonTasks: Task[] = [
-      { id: `${plant}-${system}-1`, description: `Check ${plant} for signs of stress or disease`, frequency: 'daily', completed: false },
-      { id: `${plant}-${system}-2`, description: `Monitor nutrient solution levels in ${system}`, frequency: 'daily', completed: false },
-      { id: `${plant}-${system}-3`, description: `Check and adjust pH levels in ${system}`, frequency: 'weekly', completed: false },
-      { id: `${plant}-${system}-4`, description: `Clean ${system} components`, frequency: 'biweekly', completed: false },
-      { id: `${plant}-${system}-5`, description: `Prune ${plant} as needed`, frequency: 'weekly', completed: false },
-      { id: `${plant}-${system}-6`, description: `Replace nutrient solution in ${system}`, frequency: 'biweekly', completed: false },
-      { id: `${plant}-${system}-7`, description: `Perform a deep clean of the ${system}`, frequency: 'monthly', completed: false },
-    ];
+  async function fetchTasks() {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('maintenance_tasks')
+        .select('*')
+        .in('systemType', selectedPairs.map(pair => pair.system).concat('all'));
+      
+      if (error) {
+        throw error;
+      }
+      
+      if (data) {
+        setTasks(data);
+      }
+    } catch (error) {
+      console.error('Error fetching maintenance tasks:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
 
-    const systemSpecificTasks: { [key: string]: Task[] } = {
-      'Wick System': [
-        { id: `${plant}-${system}-8`, description: 'Check wick condition and replace if necessary', frequency: 'biweekly', completed: false },
-      ],
-      'Deep Water Culture (DWC)': [
-        { id: `${plant}-${system}-8`, description: 'Check air pump and air stone functionality', frequency: 'weekly', completed: false },
-      ],
-      'Nutrient Film Technique (NFT)': [
-        { id: `${plant}-${system}-8`, description: 'Ensure proper flow rate in channels', frequency: 'weekly', completed: false },
-      ],
-      'Ebb and Flow (Flood and Drain)': [
-        { id: `${plant}-${system}-8`, description: 'Verify timer settings for flooding cycles', frequency: 'weekly', completed: false },
-      ],
-      'Aeroponics': [
-        { id: `${plant}-${system}-8`, description: 'Clean and unclog spray nozzles', frequency: 'weekly', completed: false },
-      ],
-    };
+  const completeTask = async (taskId: string) => {
+    try {
+      const completionDate = new Date().toISOString();
+      const { error } = await supabase
+        .from('maintenance_tasks')
+        .update({ lastCompleted: completionDate })
+        .eq('id', taskId);
 
-    return [...commonTasks, ...(systemSpecificTasks[system] || [])];
-  };
+      if (error) {
+        throw error;
+      }
 
-  const toggleTask = (taskId: string) => {
-    setTasks(prevTasks =>
-      prevTasks.map(task =>
-        task.id === taskId ? { ...task, completed: !task.completed } : task
-      )
-    );
-  };
-
-  const getFrequencyIcon = (frequency: string) => {
-    switch (frequency) {
-      case 'daily':
-        return <Clock className="w-4 h-4 mr-2" />;
-      case 'weekly':
-      case 'biweekly':
-      case 'monthly':
-        return <Calendar className="w-4 h-4 mr-2" />;
-      default:
-        return null;
+      setTasks(tasks.map(task => 
+        task.id === taskId ? { ...task, lastCompleted: completionDate } : task
+      ));
+    } catch (error) {
+      console.error('Error completing task:', error);
     }
   };
 
-  if (selectedPairs.length === 0) {
-    return <p>Please select at least one plant and system pair to generate the maintenance checklist.</p>;
+  const isTaskDue = (task: MaintenanceTask) => {
+    if (!task.lastCompleted) return true;
+    
+    const lastCompleted = new Date(task.lastCompleted);
+    const now = new Date();
+    const daysSinceCompletion = (now.getTime() - lastCompleted.getTime()) / (1000 * 3600 * 24);
+
+    switch (task.frequency) {
+      case 'daily': return daysSinceCompletion >= 1;
+      case 'weekly': return daysSinceCompletion >= 7;
+      case 'monthly': return daysSinceCompletion >= 30;
+      default: return true;
+    }
+  };
+
+  if (loading) {
+    return <div>Loading maintenance checklist...</div>;
   }
 
   return (
-    <div className="mt-8">
-      <h2 className="text-2xl font-semibold mb-4">Maintenance Checklist</h2>
-      {selectedPairs.map((pair, index) => (
-        <div key={index} className="mb-8">
-          <h3 className="text-xl font-semibold mb-2">
-            Checklist for {pair.plant} in {pair.system} system:
-          </h3>
-          <div className="space-y-4">
-            {tasks
-              .filter(task => task.id.startsWith(`${pair.plant}-${pair.system}`))
-              .map(task => (
-                <div
-                  key={task.id}
-                  className="flex items-center p-3 bg-white rounded-lg shadow"
-                  onClick={() => toggleTask(task.id)}
-                >
-                  {task.completed ? (
-                    <CheckSquare className="w-6 h-6 text-green-500 mr-3 cursor-pointer" />
-                  ) : (
-                    <Square className="w-6 h-6 text-gray-400 mr-3 cursor-pointer" />
-                  )}
-                  <div className="flex-grow">
-                    <p className={`${task.completed ? 'line-through text-gray-500' : 'text-gray-800'}`}>
-                      {task.description}
-                    </p>
-                    <p className="text-sm text-gray-500 flex items-center mt-1">
-                      {getFrequencyIcon(task.frequency)}
-                      {task.frequency.charAt(0).toUpperCase() + task.frequency.slice(1)}
-                    </p>
-                  </div>
-                </div>
-              ))}
-          </div>
+    <div className="space-y-4">
+      <h2 className="text-2xl font-bold mb-4 flex items-center">
+        <Clipboard className="mr-2" /> Maintenance Checklist
+      </h2>
+      <p className="text-gray-600 mb-4">
+        Keep your hydroponic system running smoothly by completing these maintenance tasks regularly.
+      </p>
+      {selectedPairs.length === 0 ? (
+        <p className="text-yellow-600 flex items-center">
+          <AlertTriangle className="mr-2" /> Please select plants and systems to see relevant maintenance tasks.
+        </p>
+      ) : (
+        <div className="space-y-4">
+          {tasks.map((task) => (
+            <div key={task.id} className="flex items-center justify-between p-4 border rounded-lg">
+              <div>
+                <h3 className="text-lg font-semibold">{task.task}</h3>
+                <p className="text-sm text-gray-600">Frequency: {task.frequency}</p>
+                <p className="text-sm text-gray-600">
+                  System: {task.systemType === 'all' ? 'All systems' : task.systemType}
+                </p>
+                {task.lastCompleted && (
+                  <p className="text-sm text-gray-600">
+                    Last completed: {new Date(task.lastCompleted).toLocaleDateString()}
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={() => completeTask(task.id)}
+                className={`px-4 py-2 rounded-full ${
+                  isTaskDue(task)
+                    ? 'bg-green-500 text-white hover:bg-green-600'
+                    : 'bg-gray-200 text-gray-700 cursor-not-allowed'
+                }`}
+                disabled={!isTaskDue(task)}
+              >
+                <Check size={20} />
+              </button>
+            </div>
+          ))}
         </div>
-      ))}
+      )}
     </div>
   );
 };
