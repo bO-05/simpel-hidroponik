@@ -1,145 +1,17 @@
 import React, { useState, ChangeEvent, useEffect } from 'react';
 import { Sprout, Filter, ArrowUpDown, Search, Users } from 'lucide-react';
-
-interface Plant {
-  name: string;
-  difficulty: 'Easy' | 'Medium' | 'Hard';
-  growthTime: number;
-  type: string;
-  image: string;
-  description: string;
-  nutrientNeeds: string;
-  idealPh: string;
-  harvestTime: string;
-  idealTemperature: string;
-  idealHumidity: string;
-  companions: string[];
-}
+import { Plant } from '../types';
+import { plants } from '../data/plants';
 
 interface PlantSelectionProps {
-  onSelectPlant: (plant: string) => void;
+  onSelectPlant: (plant: Plant) => void;
+  selectedPlants: Plant[];
 }
 
-const plants: Plant[] = [
-  { 
-    name: 'Kangkung (Water Spinach)', 
-    difficulty: 'Easy', 
-    growthTime: 3, 
-    type: 'Leafy Green', 
-    image: 'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&q=80&w=300&h=300',
-    description: 'Fast-growing, nutritious leafy green popular in Southeast Asian cuisine.',
-    nutrientNeeds: 'Low to moderate',
-    idealPh: '5.5 - 6.5',
-    harvestTime: '3-4 weeks after planting',
-    idealTemperature: '25°C - 30°C',
-    idealHumidity: '60% - 70%',
-    companions: ['Bayam (Spinach)', 'Selada (Lettuce)']
-  },
-  { 
-    name: 'Bayam (Spinach)', 
-    difficulty: 'Easy', 
-    growthTime: 4, 
-    type: 'Leafy Green', 
-    image: 'https://images.unsplash.com/photo-1576045057995-568f588f82fb?auto=format&fit=crop&q=80&w=300&h=300',
-    description: 'Nutrient-dense leafy green, rich in iron and vitamins.',
-    nutrientNeeds: 'Moderate',
-    idealPh: '6.0 - 7.0',
-    harvestTime: '4-6 weeks after planting',
-    idealTemperature: '20°C - 25°C',
-    idealHumidity: '50% - 60%',
-    companions: ['Kangkung (Water Spinach)', 'Selada (Lettuce)', 'Tomat (Tomato)']
-  },
-  { 
-    name: 'Selada (Lettuce)', 
-    difficulty: 'Easy', 
-    growthTime: 4, 
-    type: 'Leafy Green', 
-    image: 'https://images.unsplash.com/photo-1622206151226-18ca2c9ab4a1?auto=format&fit=crop&q=80&w=300&h=300',
-    description: 'Crisp and refreshing, perfect for salads and sandwiches.',
-    nutrientNeeds: 'Low',
-    idealPh: '6.0 - 7.0',
-    harvestTime: '4-5 weeks after planting',
-    idealTemperature: '15°C - 22°C',
-    idealHumidity: '60% - 70%',
-    companions: ['Kangkung (Water Spinach)', 'Bayam (Spinach)', 'Tomat (Tomato)']
-  },
-  { 
-    name: 'Pakcoy (Bok Choy)', 
-    difficulty: 'Medium', 
-    growthTime: 5, 
-    type: 'Leafy Green', 
-    image: 'https://images.unsplash.com/photo-1725369865444-7a0f5e3af865?auto=format&fit=crop&q=80&w=300&h=300',
-    description: 'Mild-flavored Chinese cabbage, great for stir-fries.',
-    nutrientNeeds: 'Moderate',
-    idealPh: '6.0 - 7.0',
-    harvestTime: '5-7 weeks after planting',
-    idealTemperature: '18°C - 24°C',
-    idealHumidity: '55% - 65%',
-    companions: ['Tomat (Tomato)', 'Timun (Cucumber)']
-  },
-  { 
-    name: 'Cabe (Chili)', 
-    difficulty: 'Medium', 
-    growthTime: 8, 
-    type: 'Fruit', 
-    image: 'https://images.unsplash.com/photo-1588252303782-cb80119abd6d?auto=format&fit=crop&q=80&w=300&h=300',
-    description: 'Spicy fruit used to add heat and flavor to dishes.',
-    nutrientNeeds: 'High',
-    idealPh: '5.5 - 6.8',
-    harvestTime: '8-10 weeks after flowering',
-    idealTemperature: '20°C - 30°C',
-    idealHumidity: '60% - 70%',
-    companions: ['Tomat (Tomato)', 'Bawang Merah (Shallot)']
-  },
-  { 
-    name: 'Tomat (Tomato)', 
-    difficulty: 'Medium', 
-    growthTime: 8, 
-    type: 'Fruit', 
-    image: 'https://images.unsplash.com/photo-1592841200221-a6898f307baa?auto=format&fit=crop&q=80&w=300&h=300',
-    description: 'Versatile fruit used in many cuisines, rich in vitamins.',
-    nutrientNeeds: 'High',
-    idealPh: '5.5 - 6.5',
-    harvestTime: '8-10 weeks after flowering',
-    idealTemperature: '18°C - 27°C',
-    idealHumidity: '65% - 75%',
-    companions: ['Bayam (Spinach)', 'Selada (Lettuce)', 'Pakcoy (Bok Choy)', 'Cabe (Chili)']
-  },
-  { 
-    name: 'Timun (Cucumber)', 
-    difficulty: 'Medium', 
-    growthTime: 6, 
-    type: 'Fruit', 
-    image: 'https://images.unsplash.com/photo-1604977042946-1eecc30f269e?auto=format&fit=crop&q=80&w=300&h=300',
-    description: 'Refreshing fruit often used in salads and pickles.',
-    nutrientNeeds: 'Moderate',
-    idealPh: '5.5 - 6.5',
-    harvestTime: '6-8 weeks after planting',
-    idealTemperature: '22°C - 28°C',
-    idealHumidity: '70% - 80%',
-    companions: ['Pakcoy (Bok Choy)', 'Bawang Merah (Shallot)']
-  },
-  { 
-    name: 'Bawang Merah (Shallot)', 
-    difficulty: 'Hard', 
-    growthTime: 10, 
-    type: 'Root', 
-    image: 'https://images.unsplash.com/photo-1600807644626-fb3c8c8ba40d?auto=format&fit=crop&q=80&w=300&h=300',
-    description: 'Flavorful bulb used as a seasoning in many dishes.',
-    nutrientNeeds: 'Moderate',
-    idealPh: '6.0 - 6.8',
-    harvestTime: '10-12 weeks after planting',
-    idealTemperature: '15°C - 25°C',
-    idealHumidity: '60% - 70%',
-    companions: ['Cabe (Chili)', 'Timun (Cucumber)']
-  },
-];
-
-const PlantSelection: React.FC<PlantSelectionProps> = ({ onSelectPlant }) => {
+const PlantSelection: React.FC<PlantSelectionProps> = ({ onSelectPlant, selectedPlants }) => {
   const [sortBy, setSortBy] = useState<keyof Plant>('name');
   const [filterDifficulty, setFilterDifficulty] = useState<'All' | Plant['difficulty']>('All');
   const [filterType, setFilterType] = useState<'All' | Plant['type']>('All');
-  const [selectedPlants, setSelectedPlants] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedPlants, setExpandedPlants] = useState<Set<string>>(new Set());
   const [recommendedPlants, setRecommendedPlants] = useState<Plant[]>([]);
@@ -157,8 +29,8 @@ const PlantSelection: React.FC<PlantSelectionProps> = ({ onSelectPlant }) => {
         const userTemp = parseInt(userPreferences.temperature);
         const userHumidity = parseInt(userPreferences.humidity);
 
-        const tempMatch = userTemp >= minTemp && userTemp <= maxTemp;
-        const humidityMatch = userHumidity >= minHumidity && userHumidity <= maxHumidity;
+        const tempMatch = userTemp >= Math.max(15, minTemp) && userTemp <= Math.min(30, maxTemp);
+        const humidityMatch = userHumidity >= Math.max(50, minHumidity) && userHumidity <= Math.min(80, maxHumidity);
         const difficultyMatch = 
           (userPreferences.experience === 'Beginner' && plant.difficulty === 'Easy') ||
           (userPreferences.experience === 'Intermediate' && (plant.difficulty === 'Easy' || plant.difficulty === 'Medium')) ||
@@ -167,6 +39,8 @@ const PlantSelection: React.FC<PlantSelectionProps> = ({ onSelectPlant }) => {
         return tempMatch && humidityMatch && difficultyMatch;
       });
       setRecommendedPlants(recommended);
+    } else {
+      setRecommendedPlants([]);
     }
   }, [userPreferences]);
 
@@ -188,19 +62,8 @@ const PlantSelection: React.FC<PlantSelectionProps> = ({ onSelectPlant }) => {
     plant.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handlePlantSelection = (plantName: string) => {
-    setSelectedPlants(prev => {
-      const newSelection = prev.includes(plantName)
-        ? prev.filter(name => name !== plantName)
-        : [...prev, plantName];
-      
-      // Call the onSelectPlant prop with the selected plant
-      if (!prev.includes(plantName)) {
-        onSelectPlant(plantName);
-      }
-      
-      return newSelection;
-    });
+  const handlePlantSelection = (plant: Plant) => {
+    onSelectPlant(plant);
   };
 
   const toggleExpandPlant = (plantName: string) => {
@@ -215,11 +78,6 @@ const PlantSelection: React.FC<PlantSelectionProps> = ({ onSelectPlant }) => {
     });
   };
 
-  const getCompanionPlants = (plantName: string): string[] => {
-    const plant = plants.find(p => p.name === plantName);
-    return plant ? plant.companions : [];
-  };
-
   return (
     <div>
       <h2 className="text-2xl font-semibold mb-4">Recommended Plants for Jakarta</h2>
@@ -232,6 +90,9 @@ const PlantSelection: React.FC<PlantSelectionProps> = ({ onSelectPlant }) => {
             className="border rounded p-2"
             value={userPreferences.temperature}
             onChange={(e) => setUserPreferences(prev => ({ ...prev, temperature: e.target.value }))}
+            min="15"
+            max="30"
+            step="5"
           />
           <input
             type="number"
@@ -239,6 +100,9 @@ const PlantSelection: React.FC<PlantSelectionProps> = ({ onSelectPlant }) => {
             className="border rounded p-2"
             value={userPreferences.humidity}
             onChange={(e) => setUserPreferences(prev => ({ ...prev, humidity: e.target.value }))}
+            min="50"
+            max="80"
+            step="5"
           />
           <select
             className="border rounded p-2"
@@ -318,7 +182,7 @@ const PlantSelection: React.FC<PlantSelectionProps> = ({ onSelectPlant }) => {
           <div 
             key={index} 
             className={`bg-white p-4 rounded-lg shadow-md transition-all duration-300 ${
-              selectedPlants.includes(plant.name) ? 'ring-2 ring-green-500' : ''
+              selectedPlants.some(p => p.name === plant.name) ? 'ring-2 ring-green-500' : ''
             }`}
           >
             <img src={plant.image} alt={plant.name} className="w-full h-40 object-cover rounded-md mb-2" />
@@ -337,13 +201,13 @@ const PlantSelection: React.FC<PlantSelectionProps> = ({ onSelectPlant }) => {
               </button>
               <button
                 className={`px-2 py-1 rounded ${
-                  selectedPlants.includes(plant.name) 
+                  selectedPlants.some(p => p.name === plant.name)
                     ? 'bg-red-500 text-white' 
                     : 'bg-green-500 text-white'
                 }`}
-                onClick={() => handlePlantSelection(plant.name)}
+                onClick={() => handlePlantSelection(plant)}
               >
-                {selectedPlants.includes(plant.name) ? 'Remove' : 'Add'}
+                {selectedPlants.some(p => p.name === plant.name) ? 'Remove' : 'Add'}
               </button>
             </div>
             {expandedPlants.has(plant.name) && (
@@ -367,10 +231,10 @@ const PlantSelection: React.FC<PlantSelectionProps> = ({ onSelectPlant }) => {
             {selectedPlants.map((plant, index) => (
               <li key={index} className="flex items-center mb-2">
                 <Sprout className="mr-2 text-green-600" />
-                <span className="flex-grow">{plant}</span>
+                <span className="flex-grow">{plant.name}</span>
                 <Users className="mr-2 text-blue-600" />
                 <span className="text-sm text-gray-600">
-                  Companions: {getCompanionPlants(plant).join(', ')}
+                  Companions: {plant.companions.join(', ')}
                 </span>
               </li>
             ))}

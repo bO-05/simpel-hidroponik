@@ -11,6 +11,7 @@ import PlantGrowthTracker from './components/PlantGrowthTracker';
 import NutrientCalculator from './components/NutrientCalculator';
 import CareReminders from './components/CareReminders';
 import useLocalStorage from './hooks/useLocalStorage';
+import { Plant } from './types';
 
 export interface PlantSystemPair {
   id: string;
@@ -21,13 +22,13 @@ export interface PlantSystemPair {
 function App() {
   const [activeTab, setActiveTab] = useState('plants');
   const [selectedPairs, setSelectedPairs] = useLocalStorage<PlantSystemPair[]>('selectedPairs', []);
-  const [selectedPlants, setSelectedPlants] = useState<string[]>([]);
+  const [selectedPlants, setSelectedPlants] = useState<Plant[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-  const addPair = (plant: string, system: string) => {
+  const addPair = (plant: Plant, system: string) => {
     const newPair: PlantSystemPair = {
       id: Date.now().toString(),
-      plant,
+      plant: plant.name,
       system,
     };
     setSelectedPairs(prev => [...prev, newPair]);
@@ -45,15 +46,16 @@ function App() {
     });
   };
 
-  const handleSelectPlant = (plant: string) => {
+  const handleSelectPlant = (plant: Plant) => {
     setSelectedPlants(prev => {
-      if (prev.includes(plant)) {
-        return prev.filter(p => p !== plant);
+      const isAlreadySelected = prev.some(p => p.name === plant.name);
+      if (isAlreadySelected) {
+        return prev.filter(p => p.name !== plant.name);
       } else {
+        addPair(plant, '');
         return [...prev, plant];
       }
     });
-    addPair(plant, '');
   };
 
   const toggleSidebar = () => {
@@ -110,7 +112,12 @@ function App() {
 
           <main className="container mx-auto p-4">
             <div className="bg-white rounded-lg shadow-lg p-6">
-              {activeTab === 'plants' && <PlantSelection onSelectPlant={handleSelectPlant} />}
+              {activeTab === 'plants' && (
+                <PlantSelection
+                  onSelectPlant={handleSelectPlant}
+                  selectedPlants={selectedPlants}
+                />
+              )}
               {activeTab === 'systems' && <SystemGuide onSelectSystem={updatePairSystem} />}
               {activeTab === 'nutrients' && <NutrientManagement />}
               {activeTab === 'timeline' && <GrowthTimeline />}
@@ -118,13 +125,13 @@ function App() {
                 <MaintenanceChecklist selectedPairs={selectedPairs} />
               )}
               {activeTab === 'growth-tracker' && (
-                <PlantGrowthTracker selectedPairs={selectedPairs} />
+                <PlantGrowthTracker selectedPlants={selectedPlants} />
               )}
               {activeTab === 'nutrient-calculator' && (
                 <NutrientCalculator selectedPairs={selectedPairs} />
               )}
               {activeTab === 'care-reminders' && (
-                <CareReminders selectedPlants={selectedPlants} />
+                <CareReminders selectedPlants={selectedPlants.map(p => p.name)} />
               )}
             </div>
           </main>
